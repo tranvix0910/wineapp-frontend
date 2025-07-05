@@ -40,31 +40,31 @@ phases:
       - echo "Getting Git tag version..."
       - git log --oneline -n 5
       - git tag --list
-      - |
-        TAG_VERSION=$(git describe --tags --exact-match 2>/dev/null || git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD)
-        echo "Using tag version: $TAG_VERSION"
-        echo "Docker image will be: $ECR_REPOSITORY_URI:$TAG_VERSION"
+      - >
+        TAG_VERSION=$(git describe --tags --exact-match 2>/dev/null || git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD);
+        echo "Using tag version: $TAG_VERSION";
+        echo "Docker image will be: $ECR_REPOSITORY_URI:$TAG_VERSION";
         echo "export TAG_NAME=$TAG_VERSION" >> $CODEBUILD_SRC_DIR/tag_env.sh
       - source $CODEBUILD_SRC_DIR/tag_env.sh
       - echo "TAG_NAME=$TAG_NAME"
       
       # Verify Frontend Files
       - echo "Checking frontend files..."
-      - |
+      - >
         if [ -f "package.json" ]; then
-          echo "package.json found!"
-          head -10 package.json
+          echo "package.json found!";
+          head -10 package.json;
         else
-          echo "ERROR: package.json not found! This doesn't appear to be a Node.js project."
-          exit 1
+          echo "ERROR: package.json not found! This doesn't appear to be a Node.js project.";
+          exit 1;
         fi
-      - |
+      - >
         if [ -f "Dockerfile" ]; then
-          echo "Dockerfile found!"
-          head -10 Dockerfile
+          echo "Dockerfile found!";
+          head -10 Dockerfile;
         else
-          echo "ERROR: Dockerfile not found! Please create Dockerfile in repository root."
-          exit 1
+          echo "ERROR: Dockerfile not found! Please create Dockerfile in repository root.";
+          exit 1;
         fi
       
       # Check Docker (Docker is available in CodeBuild)
@@ -124,8 +124,7 @@ phases:
       - echo "Updating frontend Helm values with new image version..."
       - echo "Current frontend helm values:"
       - cat helm-values/values-prod.yaml | grep -A3 -B3 tag || echo "Tag not found in current format"
-      - |
-        # Update tag field for frontend
+      - >
         sed -i "s/^  tag.*/  tag: \"$TAG_NAME\"/" helm-values/values-prod.yaml
       - echo "Updated frontend helm values:"
       - cat helm-values/values-prod.yaml | grep -A3 -B3 tag
@@ -135,20 +134,17 @@ phases:
       # Push Frontend Config Changes
       - echo "Pushing frontend changes to config repository..."
       - echo "GitHub token is securely loaded from Secrets Manager"
-      - |
-        GIT_STATUS=$(git status --porcelain)
+      - >
+        GIT_STATUS=$(git status --porcelain);
         if [ -n "$GIT_STATUS" ]; then
-          echo "Frontend changes detected, committing and pushing..."
-          git add .
-          git commit -m "🚀 Update frontend image version to $TAG_NAME - Updated helm-values/values-prod.yaml - Image: $ECR_REPOSITORY_URI:$TAG_NAME - Build: $CODEBUILD_BUILD_NUMBER - CodeBuild Project: $CODEBUILD_BUILD_ID - Frontend deployment update"
-          
-          # Push using GitHub token from Secrets Manager
-          git remote set-url origin https://$GITHUB_TOKEN@github.com/tranvix0910/wineapp-frontend-config.git
-          git push origin main
-          
-          echo "✅ Frontend config changes pushed successfully!"
+          echo "Frontend changes detected, committing and pushing...";
+          git add .;
+          git commit -m "🚀 Update frontend image version to $TAG_NAME - Updated helm-values/values-prod.yaml - Image: $ECR_REPOSITORY_URI:$TAG_NAME - Build: $CODEBUILD_BUILD_NUMBER - CodeBuild Project: $CODEBUILD_BUILD_ID - Frontend deployment update";
+          git remote set-url origin https://$GITHUB_TOKEN@github.com/tranvix0910/wineapp-frontend-config.git;
+          git push origin main;
+          echo "✅ Frontend config changes pushed successfully!";
         else
-          echo "ℹ️ No changes detected in frontend config repo"
+          echo "ℹ️ No changes detected in frontend config repo";
         fi
       
       - cd ..
