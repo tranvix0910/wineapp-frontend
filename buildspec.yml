@@ -27,7 +27,7 @@ phases:
       
       # Agent Information
       - echo "Running on CodeBuild agent"
-      - echo "Workspace: $CODEBUILD_SRC_DIR"
+      - echo "Workspace $CODEBUILD_SRC_DIR"
       - whoami
       - pwd
       - uname -a
@@ -86,7 +86,7 @@ phases:
       - npm run build
       
       # Build Docker Image
-      - echo "Building frontend Docker image: $ECR_REPOSITORY_URI:$TAG_NAME"
+      - echo "Building frontend Docker image $ECR_REPOSITORY_URI:$TAG_NAME"
       - docker build -t $ECR_REPOSITORY_URI:$TAG_NAME .
       
       - echo "Frontend Docker image built successfully!"
@@ -149,11 +149,11 @@ phases:
       
       - cd ..
       - echo "Build completed on `date`"
-      - echo "Image pushed: $ECR_REPOSITORY_URI:$TAG_NAME"
+      - echo "Image pushed $ECR_REPOSITORY_URI:$TAG_NAME"
       - echo "✅ FRONTEND BUILD SUCCESS!"
-      - echo "Frontend source code built and pushed: $ECR_REPOSITORY_URI:$TAG_NAME"
+      - echo "Frontend source code built and pushed $ECR_REPOSITORY_URI:$TAG_NAME"
       - echo "Frontend config repository updated with new version"
-      - echo "ECR Repository: $ECR_REPOSITORY_URI"
+      - echo "ECR Repository $ECR_REPOSITORY_URI"
       - echo "Frontend ready for deployment!"
 
 # artifacts:
