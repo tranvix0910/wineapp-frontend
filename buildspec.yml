@@ -19,10 +19,7 @@ phases:
       - echo Installing dependencies...
       - npm install
       - echo Installing git...
-      - apt-get update -y
-      - apt-get install -y git curl
-
-      
+      - yum install -y git curl
   pre_build:
     commands:
       - echo Pre-build phase started on `date`
@@ -46,8 +43,7 @@ phases:
         TAG_VERSION=$(git describe --tags --exact-match 2>/dev/null || git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD);
         echo "Using tag version: $TAG_VERSION";
         echo "Docker image will be: $ECR_REPOSITORY_URI:$TAG_VERSION";
-        echo "export TAG_NAME=$TAG_VERSION" >> $CODEBUILD_SRC_DIR/tag_env.sh
-      - source $CODEBUILD_SRC_DIR/tag_env.sh
+        export TAG_NAME=$TAG_VERSION
       - echo "TAG_NAME=$TAG_NAME"
       
       # Verify Frontend Files
@@ -105,7 +101,6 @@ phases:
   post_build:
     commands:
       - echo Post-build phase started on `date`
-      - source $CODEBUILD_SRC_DIR/tag_env.sh
       
       # Push to ECR
       - echo "Pushing frontend image to ECR..."
