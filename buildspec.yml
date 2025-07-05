@@ -78,11 +78,6 @@ phases:
   build:
     commands:
       - echo Build phase started on `date`
-      - source $CODEBUILD_SRC_DIR/tag_env.sh
-      
-      # Build React Application
-      - echo "Building the React application..."
-      - npm run build
       
       # Build Docker Image
       - echo "Building frontend Docker image $ECR_REPOSITORY_URI:$TAG_NAME"
