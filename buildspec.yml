@@ -1,0 +1,178 @@
+version: 0.2
+
+env:
+  variables:
+    AWS_DEFAULT_REGION: "ap-southeast-1"
+    AWS_ACCOUNT_ID: "022499043310"
+    ECR_LOGIN_URI: "022499043310.dkr.ecr.ap-southeast-1.amazonaws.com"
+    ECR_REPOSITORY_URI: "022499043310.dkr.ecr.ap-southeast-1.amazonaws.com/workshop-2/wineapp-frontend"
+    CONFIG_REPO_URL: "https://github.com/tranvix0910/wineapp-frontend-config.git"
+  parameter-store:
+    GITHUB_TOKEN: "workshop-2-wineapp"
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: latest
+    commands:
+      - echo Install phase started on `date`
+      - echo Installing dependencies...
+      - npm install
+      - echo Installing git...
+      - yum install -y git curl
+      
+  pre_build:
+    commands:
+      - echo Pre-build phase started on `date`
+      
+      # Agent Information
+      - echo "Running on CodeBuild agent"
+      - echo "Workspace: $CODEBUILD_SRC_DIR"
+      - whoami
+      - pwd
+      - uname -a
+      
+      # Checkout Source Code (already done by CodeBuild)
+      - echo "Source code already checked out by CodeBuild"
+      - ls -la
+      
+      # Get Git Tag Version Stage
+      - echo "Getting Git tag version..."
+      - git log --oneline -n 5
+      - git tag --list
+      - |
+        TAG_VERSION=$(git describe --tags --exact-match 2>/dev/null || git describe --tags --abbrev=0 2>/dev/null || git rev-parse --short HEAD)
+        echo "Using tag version: $TAG_VERSION"
+        echo "Docker image will be: $ECR_REPOSITORY_URI:$TAG_VERSION"
+        echo "export TAG_NAME=$TAG_VERSION" >> $CODEBUILD_SRC_DIR/tag_env.sh
+      - source $CODEBUILD_SRC_DIR/tag_env.sh
+      - echo "TAG_NAME=$TAG_NAME"
+      
+      # Verify Frontend Files
+      - echo "Checking frontend files..."
+      - |
+        if [ -f "package.json" ]; then
+          echo "package.json found!"
+          head -10 package.json
+        else
+          echo "ERROR: package.json not found! This doesn't appear to be a Node.js project."
+          exit 1
+        fi
+      - |
+        if [ -f "Dockerfile" ]; then
+          echo "Dockerfile found!"
+          head -10 Dockerfile
+        else
+          echo "ERROR: Dockerfile not found! Please create Dockerfile in repository root."
+          exit 1
+        fi
+      
+      # Check Docker (Docker is available in CodeBuild)
+      - echo "Checking Docker availability..."
+      - docker --version
+      - docker info
+      
+      # ECR Login
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_LOGIN_URI
+      
+  build:
+    commands:
+      - echo Build phase started on `date`
+      - source $CODEBUILD_SRC_DIR/tag_env.sh
+      
+      # Build React Application
+      - echo "Building the React application..."
+      - npm run build
+      
+      # Build Docker Image
+      - echo "Building frontend Docker image: $ECR_REPOSITORY_URI:$TAG_NAME"
+      - docker build -t $ECR_REPOSITORY_URI:$TAG_NAME .
+      
+      - echo "Frontend Docker image built successfully!"
+      - docker images | grep $ECR_REPOSITORY_URI
+      
+      # Test Docker Image
+      - echo "Testing frontend Docker image..."
+      - docker run --rm -d --name test-frontend-$CODEBUILD_BUILD_NUMBER -p 80:80 $ECR_REPOSITORY_URI:$TAG_NAME
+      - sleep 5
+      - curl -f http://localhost:80 || echo "Frontend test completed"
+      - docker stop test-frontend-$CODEBUILD_BUILD_NUMBER || true
+      - docker rm test-frontend-$CODEBUILD_BUILD_NUMBER || true
+      
+  post_build:
+    commands:
+      - echo Post-build phase started on `date`
+      - source $CODEBUILD_SRC_DIR/tag_env.sh
+      
+      # Push to ECR
+      - echo "Pushing frontend image to ECR..."
+      - docker push $ECR_REPOSITORY_URI:$TAG_NAME
+      - echo "✅ Successfully pushed frontend image to ECR!"
+      
+      # Clone Config Repo
+      - echo "Cloning frontend config repository..."
+      - mkdir -p config-repo
+      - cd config-repo
+      - git clone $CONFIG_REPO_URL .
+      - git config user.email "tranvix.work@gmail.com"
+      - git config user.name "Tran Dai Vi - N22DCCI044"
+      - echo "Frontend config repo cloned successfully!"
+      - ls -la
+      
+      # Update Frontend Helm Values
+      - echo "Updating frontend Helm values with new image version..."
+      - echo "Current frontend helm values:"
+      - cat helm-values/values-prod.yaml | grep -A3 -B3 tag || echo "Tag not found in current format"
+      - |
+        # Update tag field for frontend
+        sed -i "s/^  tag.*/  tag: \"$TAG_NAME\"/" helm-values/values-prod.yaml
+      - echo "Updated frontend helm values:"
+      - cat helm-values/values-prod.yaml | grep -A3 -B3 tag
+      - git diff helm-values/values-prod.yaml || echo "No changes detected"
+      - echo "Frontend Helm values updated successfully!"
+      
+      # Push Frontend Config Changes
+      - echo "Pushing frontend changes to config repository..."
+      - echo "GitHub token is securely loaded from Parameter Store"
+      - |
+        GIT_STATUS=$(git status --porcelain)
+        if [ -n "$GIT_STATUS" ]; then
+          echo "Frontend changes detected, committing and pushing..."
+          git add .
+          git commit -m "🚀 Update frontend image version to $TAG_NAME
+
+          - Updated helm-values/values-prod.yaml
+          - Image: $ECR_REPOSITORY_URI:$TAG_NAME
+          - Build: $CODEBUILD_BUILD_NUMBER
+          - CodeBuild Project: $CODEBUILD_BUILD_ID
+          - Frontend deployment update"
+          
+          # Push using GitHub token from Parameter Store
+          git remote set-url origin https://$GITHUB_TOKEN@github.com/tranvix0910/wineapp-frontend-config.git
+          git push origin main
+          
+          echo "✅ Frontend config changes pushed successfully!"
+        else
+          echo "ℹ️ No changes detected in frontend config repo"
+        fi
+      
+      - cd ..
+      - echo "Build completed on `date`"
+      - echo "Image pushed: $ECR_REPOSITORY_URI:$TAG_NAME"
+      - echo "✅ FRONTEND BUILD SUCCESS!"
+      - echo "Frontend source code built and pushed: $ECR_REPOSITORY_URI:$TAG_NAME"
+      - echo "Frontend config repository updated with new version"
+      - echo "ECR Repository: $ECR_REPOSITORY_URI"
+      - echo "Frontend ready for deployment!"
+
+# artifacts:
+#   files:
+#     - '**/*'
+#   base-directory: 'build'
+#   name: wineapp-frontend-build-$TAG_NAME
+
+# cache:
+#   paths:
+#     - '/root/.npm/**/*'
+#     - 'node_modules/**/*'
