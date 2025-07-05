@@ -140,13 +140,7 @@ phases:
         if [ -n "$GIT_STATUS" ]; then
           echo "Frontend changes detected, committing and pushing..."
           git add .
-          git commit -m "🚀 Update frontend image version to $TAG_NAME
-
-          - Updated helm-values/values-prod.yaml
-          - Image: $ECR_REPOSITORY_URI:$TAG_NAME
-          - Build: $CODEBUILD_BUILD_NUMBER
-          - CodeBuild Project: $CODEBUILD_BUILD_ID
-          - Frontend deployment update"
+          git commit -m "🚀 Update frontend image version to $TAG_NAME - Updated helm-values/values-prod.yaml - Image: $ECR_REPOSITORY_URI:$TAG_NAME - Build: $CODEBUILD_BUILD_NUMBER - CodeBuild Project: $CODEBUILD_BUILD_ID - Frontend deployment update"
           
           # Push using GitHub token from Secrets Manager
           git remote set-url origin https://$GITHUB_TOKEN@github.com/tranvix0910/wineapp-frontend-config.git
