@@ -7,8 +7,8 @@ env:
     ECR_LOGIN_URI: "022499043310.dkr.ecr.ap-southeast-1.amazonaws.com"
     ECR_REPOSITORY_URI: "022499043310.dkr.ecr.ap-southeast-1.amazonaws.com/workshop-2/wineapp-frontend"
     CONFIG_REPO_URL: "https://github.com/tranvix0910/wineapp-frontend-config.git"
-  parameter-store:
-    GITHUB_TOKEN: "workshop-2-github-access-token"
+  secrets-manager:
+    GITHUB_TOKEN: "workshop-2-github-access-token:token"
 
 phases:
   install:
@@ -134,7 +134,7 @@ phases:
       
       # Push Frontend Config Changes
       - echo "Pushing frontend changes to config repository..."
-      - echo "GitHub token is securely loaded from Parameter Store"
+      - echo "GitHub token is securely loaded from Secrets Manager"
       - |
         GIT_STATUS=$(git status --porcelain)
         if [ -n "$GIT_STATUS" ]; then
@@ -148,7 +148,7 @@ phases:
           - CodeBuild Project: $CODEBUILD_BUILD_ID
           - Frontend deployment update"
           
-          # Push using GitHub token from Parameter Store
+          # Push using GitHub token from Secrets Manager
           git remote set-url origin https://$GITHUB_TOKEN@github.com/tranvix0910/wineapp-frontend-config.git
           git push origin main
           
