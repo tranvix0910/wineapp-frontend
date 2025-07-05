@@ -8,7 +8,7 @@ env:
     ECR_REPOSITORY_URI: "022499043310.dkr.ecr.ap-southeast-1.amazonaws.com/workshop-2/wineapp-frontend"
     CONFIG_REPO_URL: "https://github.com/tranvix0910/wineapp-frontend-config.git"
   parameter-store:
-    GITHUB_TOKEN: "workshop-2-wineapp"
+    GITHUB_TOKEN: "workshop-2-github-access-token"
 
 phases:
   install:
