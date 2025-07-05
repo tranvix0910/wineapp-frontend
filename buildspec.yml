@@ -19,7 +19,9 @@ phases:
       - echo Installing dependencies...
       - npm install
       - echo Installing git...
-      - yum install -y git curl
+      - apt-get update -y
+      - apt-get install -y git curl
+
       
   pre_build:
     commands:
