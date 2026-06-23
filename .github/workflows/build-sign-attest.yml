@@ -89,7 +89,7 @@ jobs:
           # Đính kèm SBOM vào image dưới dạng Cosign attestation
           cosign attest --yes \
             --predicate sbom-cyclonedx.json \
-            --type sbom/cyclone-dx \
+            --type cyclonedx \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
 
       # ============================
@@ -106,7 +106,7 @@ jobs:
         run: |
           cosign attest --yes \
             --predicate vuln-report.json \
-            --type cosign.sigstore.dev/attestation/vuln/v1 \
+            --type vuln \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
 
       # ============================
