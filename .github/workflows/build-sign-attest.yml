@@ -33,11 +33,8 @@ jobs:
         uses: anchore/sbom-action/download-syft@v0
 
       - name: Install Trivy (Vulnerability Scanner)
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'image'
-          # Chỉ cài đặt, chưa quét
-          exit-code: '0'
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
       # ============================
       # BƯỚC 2: BUILD & PUSH IMAGE
